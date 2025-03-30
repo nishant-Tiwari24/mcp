@@ -12,25 +12,20 @@ model = ChatOpenAI(model="gpt-4o")
 
 
 async def main():
+    # Ensuring the REACT AGENT always calls a tool
     prompt = """Always use the arxiv_server tool to answer a question"""
+
+    # This is the Langchain MCP adapater for MCP servers
     async with MultiServerMCPClient(
             {
-                # "math": {
-                #     "command": "python",
-                #     # Make sure to update to the full absolute path to your math_server.py file
-                #     "args": ["/path/to/math_server.py"],
-                #     "transport": "stdio",
-                # },
                 "arxiv_server": {
-                    # make sure you start your weather server on port 8000
+                    # you need run the server.py to have the mcp server run on 8000
                     "url": "http://127.0.0.1:8000/sse",
                     "transport": "sse",
                 }
             }
     ) as client:
-        print("rajib ", client.get_tools())
         agent = create_react_agent(model, client.get_tools(), prompt=prompt)
-        # math_response = await agent.ainvoke({"messages": "what's (3 + 5) x 12?"})
         arxiv_response = await agent.ainvoke({"messages": "I want to know about Neural Network architecture?"})
         messages = arxiv_response["messages"]
 
@@ -39,4 +34,5 @@ async def main():
                 print(message.content)
 
 
+# now lets execute
 asyncio.run(main())

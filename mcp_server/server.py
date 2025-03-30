@@ -1,8 +1,3 @@
-# math_server.py
-...
-
-# weather_server.py
-from typing import List
 from mcp.server.fastmcp import FastMCP
 import requests
 import xml.etree.ElementTree as ET
