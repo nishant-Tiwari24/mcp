@@ -68,7 +68,12 @@ uvicorn mcp_server.jobs_api:app --port 8001 --host 127.0.0.1
 
 ### 3. Run the client (in a new terminal)
 - Edit `langchain_mcp_client.py` and set `SERVER = "jobs_server"` or `SERVER = "employee_server"` at the top.
-- Then run:
+- **Before running the client, make sure your OpenAI API key is exported:**
+  ```sh
+  export OPENAI_API_KEY=sk-...your-key-here...
+  python langchain_mcp_client.py
+  ```
+  Or, if you have a `.env` file, just run:
   ```sh
   python langchain_mcp_client.py
   ```
