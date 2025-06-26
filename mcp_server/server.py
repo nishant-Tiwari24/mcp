@@ -1,47 +1,54 @@
 from mcp.server.fastmcp import FastMCP
 import requests
-import xml.etree.ElementTree as ET
 
-mcp = FastMCP("arxiv_server")
+# Server 1: jobs_server
+jobs_server = FastMCP("jobs_server")
 
-
-@mcp.tool()
-async def search_arxiv(topic, max_results=5):
+@jobs_server.tool()
+async def find_similar_jobs(requirements: str):
     """
-    Search for arXiv papers related to a topic.
-
-    Parameters:
-        topic (str): The topic or keywords to search for.
-        max_results (int): Number of results to retrieve.
-
-    Returns:
-        List of dictionaries with paper details (title, authors, summary, link).
+    Given a prompt describing a job requisition (requirements, skills, location, etc.),
+    return a list of similar jobs from the local jobs API.
     """
-    base_url = "http://export.arxiv.org/api/query?"
-    query = f"search_query=all:{topic}&start=0&max_results={max_results}"
-    response = requests.get(base_url + query)
+    # Call the dummy jobs API
+    resp = requests.get("http://127.0.0.1:8001/jobs")
+    jobs = resp.json().get("jobs", [])
+    # Simple matching: check if requirements words appear in job fields
+    req = requirements.lower()
+    matches = []
+    for job in jobs:
+        text = f"{job['title']} {job['location']} {job['experience']} {' '.join(job['skills'])} {job['description']}".lower()
+        if any(word in text for word in req.split()):
+            matches.append(job)
+    # If no matches, return all jobs
+    return matches if matches else jobs
 
-    if response.status_code != 200:
-        raise Exception("Failed to fetch results from arXiv API.")
+# Server 2: employee_server
+employee_server = FastMCP("employee_server")
 
-    root = ET.fromstring(response.content)
-    ns = {'atom': 'http://www.w3.org/2005/Atom'}
-
-    papers = []
-    for entry in root.findall('atom:entry', ns):
-        title = entry.find('atom:title', ns).text.strip()
-        summary = entry.find('atom:summary', ns).text.strip()
-        link = entry.find('atom:id', ns).text.strip()
-        authors = [author.find('atom:name', ns).text for author in entry.findall('atom:author', ns)]
-        papers.append({
-            'title': title,
-            'authors': authors,
-            'summary': summary,
-            'link': link
-        })
-
-    return papers
-
+@employee_server.tool()
+async def summarize_employee_feedback(name: str):
+    """
+    Given an employee name, return a summary of their feedback for the current year.
+    """
+    resp = requests.get(f"http://127.0.0.1:8001/employees/{name}")
+    emp = resp.json()
+    if "error" in emp:
+        return emp["error"]
+    feedbacks = emp.get("feedback", [])
+    # Filter for current year (2024)
+    year = 2024
+    summary = []
+    for fb in feedbacks:
+        if fb["year"] == year:
+            summary.append(f"[{fb['type']}] {fb['text']}")
+    if not summary:
+        return f"No feedback found for {name} in {year}."
+    return f"Feedback summary for {name} ({year}):\n" + "\n".join(summary)
 
 if __name__ == "__main__":
-    mcp.run(transport="sse")
+    import sys
+    if len(sys.argv) > 1 and sys.argv[1] == "employee":
+        employee_server.run(transport="sse")
+    else:
+        jobs_server.run(transport="sse")

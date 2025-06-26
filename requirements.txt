@@ -3,3 +3,5 @@ langchain-openai
 fastapi
 langgraph
 python_dotenv
+uvicorn
+# For frontend: install separately if using React (npm create vite@latest or create-react-app)
