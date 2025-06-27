@@ -2,8 +2,8 @@
 
 This repository demonstrates a minimal working MCP (Multi-Server Control Plane) setup using LangChain, with:
 - A dummy jobs and employee API (FastAPI)
-- Two MCP servers (jobs and employee feedback)
-- A Python client that can query either server
+- Two MCP servers (jobs and employee feedback, each on its own port)
+- A Python client that can query both servers simultaneously (multi-server, multi-tool)
 
 ---
 
@@ -55,35 +55,34 @@ export OPENAI_API_KEY=sk-...your-key-here...
 uvicorn mcp_server.jobs_api:app --port 8001 --host 127.0.0.1
 ```
 
-### 2. Start the MCP server (in a new terminal)
-- For jobs server:
-  ```sh
-  python mcp_server/server.py
-  ```
-- For employee server:
-  ```sh
-  python mcp_server/server.py employee
-  ```
-> **Note:** Only one MCP server can run at a time (always on port 8000).
+### 2. Start both MCP servers (in a new terminal)
+```sh
+python run_servers.py
+```
+This will start:
+- Jobs server on port 8000
+- Employee server on port 8002
 
-### 3. Run the client (in a new terminal)
-- Edit `langchain_mcp_client.py` and set `SERVER = "jobs_server"` or `SERVER = "employee_server"` at the top.
-- **Before running the client, make sure your OpenAI API key is exported:**
-  ```sh
-  export OPENAI_API_KEY=sk-...your-key-here...
-  python langchain_mcp_client.py
-  ```
-  Or, if you have a `.env` file, just run:
-  ```sh
-  python langchain_mcp_client.py
-  ```
+Or, to run them manually in separate terminals:
+```sh
+python mcp_server/server.py jobs
+python mcp_server/server.py employee
+```
+
+### 3. Run the multi-server client (in a new terminal)
+```sh
+python langchain_mcp_client.py
+```
+- The client will connect to both servers and can use tools from both in a single conversation.
+- Make sure your OpenAI API key is exported or in a `.env` file.
 
 ---
 
 ## File Structure
-- `langchain_mcp_client.py` — Python client for querying MCP servers
-- `mcp_server/server.py` — MCP server (jobs or employee feedback)
+- `langchain_mcp_client.py` — Python client for querying both MCP servers (multi-server, multi-tool)
+- `mcp_server/server.py` — MCP servers (jobs and employee feedback, each on its own port)
 - `mcp_server/jobs_api.py` — Dummy FastAPI backend for jobs and employee data
+- `run_servers.py` — Script to start both MCP servers at once
 - `requirements.txt` — Python dependencies
 - `.gitignore` — Excludes `.venv`, `.env`, and other environment files
 
@@ -97,10 +96,9 @@ uvicorn mcp_server.jobs_api:app --port 8001 --host 127.0.0.1
 ---
 
 ## Example Usage
-- **Jobs server:**
-  - Query: "I am looking for an AI engineer in San Jose, CA with 4-5 years of experience leveraging models like GPT 401, Claude 3.5 or similar. Can you please show the similar jobs I can use to create a requisition?"
-- **Employee server:**
-  - Query: "I am requesting a feedback summary for Kalyan P. The system will pull calendar year feedback, including Props, and create a summary for me to review, which can be ideally entered into Workday as an impact summary."
+- **Multi-server client:**
+  - Query: "I need to find similar jobs for an AI engineer position in San Jose, CA with 4-5 years of experience, and also get a feedback summary for Kalyan P. Can you help me with both?"
+  - The client will use both tools: `find_similar_jobs` and `summarize_employee_feedback`.
 
 ---
 

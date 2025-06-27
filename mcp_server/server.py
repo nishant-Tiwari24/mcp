@@ -1,8 +1,9 @@
 from mcp.server.fastmcp import FastMCP
 import requests
+import sys
 
 # Server 1: jobs_server
-jobs_server = FastMCP("jobs_server")
+jobs_server = FastMCP("jobs_server", port=8000)
 
 @jobs_server.tool()
 async def find_similar_jobs(requirements: str):
@@ -24,7 +25,7 @@ async def find_similar_jobs(requirements: str):
     return matches if matches else jobs
 
 # Server 2: employee_server
-employee_server = FastMCP("employee_server")
+employee_server = FastMCP("employee_server", port=8002)
 
 @employee_server.tool()
 async def summarize_employee_feedback(name: str):
@@ -46,9 +47,24 @@ async def summarize_employee_feedback(name: str):
         return f"No feedback found for {name} in {year}."
     return f"Feedback summary for {name} ({year}):\n" + "\n".join(summary)
 
-if __name__ == "__main__":
-    import sys
-    if len(sys.argv) > 1 and sys.argv[1] == "employee":
-        employee_server.run(transport="sse")
+def run_server(server_type: str):
+    """Run a specific server using SSE transport"""
+    if server_type == "jobs":
+        server = jobs_server
+    elif server_type == "employee":
+        server = employee_server
     else:
-        jobs_server.run(transport="sse")
+        print(f"Unknown server type: {server_type}")
+        return
+    
+    print(f"Starting {server_type}_server")
+    server.run(transport="sse")
+
+if __name__ == "__main__":
+    if len(sys.argv) < 2:
+        print("Usage: python server.py <server_type>")
+        print("server_type: jobs or employee")
+        sys.exit(1)
+    
+    server_type = sys.argv[1]
+    run_server(server_type)
